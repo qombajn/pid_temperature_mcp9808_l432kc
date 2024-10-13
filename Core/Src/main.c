@@ -170,6 +170,7 @@ int main(void)
   MX_I2C1_Init();
   MX_I2C3_Init();
   MX_TIM1_Init();
+  MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
 	ssd1306_Init();
@@ -186,7 +187,7 @@ int main(void)
 
 	Mcp9808SetResolution(2);
 
-	//HAL_TIM_Base_Start_IT(&htim15); // TODO: control loop interrupt
+	HAL_TIM_Base_Start_IT(&htim15); // control loop interrupt
 
 	uartSoftTimer = HAL_GetTick();
 	oledSoftTimer = HAL_GetTick();
@@ -284,15 +285,15 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-//void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) //TODO:
-//{
-//	if (htim->Instance == TIM15) // 5 Hz
-//	{
-//		HAL_GPIO_TogglePin(LOGIC_ANALYZER_TIM15_GPIO_Port,
-//		LOGIC_ANALYZER_TIM15_Pin);
-//		ControlFeedbackLoop();
-//	}
-//}
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	if (htim->Instance == TIM15) // 5 Hz
+	{
+		HAL_GPIO_TogglePin(LOGIC_ANALYZER_TIM15_GPIO_Port,
+		LOGIC_ANALYZER_TIM15_Pin);
+		ControlFeedbackLoop();
+	}
+}
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
