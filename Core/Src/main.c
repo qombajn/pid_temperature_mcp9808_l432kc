@@ -20,6 +20,7 @@
 #include "main.h"
 #include "dma.h"
 #include "i2c.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -125,7 +126,7 @@ void ControlFeedbackLoop(void)
 
 	pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
 	PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
-	//HAL_TIM_PWM_Start_DMA(&htim4, TIM_CHANNEL_1, &pwmDuty, 1); //TODO:
+	HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_4, &pwmDuty, 1);
 
 	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
 	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_RESET);
@@ -168,6 +169,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_I2C3_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
 	ssd1306_Init();
