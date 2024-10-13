@@ -1,0 +1,4 @@
+../Core/Src/mcp9808.c:13:6:Mcp9808SetResolution	40	static
+../Core/Src/mcp9808.c:28:7:Mcp9808GetTemperature	40	static
+../Core/Src/mcp9808.c:60:9:hysteresisCtrl	16	static
+../Core/Src/mcp9808.c:80:10:piCtrl	40	static
