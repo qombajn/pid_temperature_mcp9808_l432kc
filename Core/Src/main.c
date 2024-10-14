@@ -184,7 +184,7 @@ int main(void)
 //	ssd1306_WriteString("(hysteresis vs. PI)", Font_6x8, White);
 //	ssd1306_UpdateScreen(); //TODO:
 
-	Mcp9808SetResolution(3);
+	Mcp9808SetResolution(2);
 
 	HAL_TIM_Base_Start_IT(&htim15); // control loop interrupt
 
