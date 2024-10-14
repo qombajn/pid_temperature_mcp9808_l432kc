@@ -126,7 +126,7 @@ void ControlFeedbackLoop(void)
 
 	pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
 	PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
-	HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_4, &pwmDuty, 1);
+	HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, &pwmDuty, 1);
 
 //	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
 //	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_RESET);
