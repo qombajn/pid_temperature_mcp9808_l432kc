@@ -21,7 +21,7 @@
 //#define MCP9808_I2C_ADDRESS (0x1F << 1) // default for DFRobot
 #define MCP9808_I2C_ADDRESS (0x18 << 1) // default for Seed Studio
 
-#define MCP9808_I2C_BUS (&hi2c3)
+#define MCP9808_I2C_BUS (&hi2c1)
 
 void Mcp9808SetResolution(uint8_t);
 float Mcp9808GetTemperature(void);

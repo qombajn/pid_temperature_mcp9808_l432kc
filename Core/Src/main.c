@@ -94,8 +94,8 @@ void ControlFeedbackLoop(void);
 
 void ControlFeedbackLoop(void)
 {
-	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
-	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
+	//LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_SET); //TODO:
 
 	tempVal = Mcp9808GetTemperature();
 
@@ -120,16 +120,16 @@ void ControlFeedbackLoop(void)
 	HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,
 			hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth));
 
-	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin,
-			HAL_GPIO_ReadPin(HYSTERESIS_CONTROL_GPIO_Port,
-			HYSTERESIS_CONTROL_Pin));
+//	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin,
+//			HAL_GPIO_ReadPin(HYSTERESIS_CONTROL_GPIO_Port,
+//			HYSTERESIS_CONTROL_Pin)); //TODO:
 
 	pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
 	PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
 	HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_4, &pwmDuty, 1);
 
-	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
-	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
+//	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_RESET);
 
 //	HAL_GPIO_TogglePin(RED_LED_GPIO_Port, RED_LED_Pin);
 }
@@ -168,22 +168,21 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
-  MX_I2C3_Init();
   MX_TIM1_Init();
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
-	ssd1306_Init();
-	ssd1306_Fill(Black);
-	ssd1306_SetCursor(20, 0);
-	ssd1306_WriteString("01159231@pw.edu.pl", Font_6x8, White);
-	ssd1306_SetCursor(22, 12);
-	ssd1306_WriteString("MCP9808 sensor", Font_6x8, White);
-	ssd1306_SetCursor(10, 24);
-	ssd1306_WriteString("Temperature control", Font_6x8, White);
-	ssd1306_SetCursor(10, 36);
-	ssd1306_WriteString("(hysteresis vs. PI)", Font_6x8, White);
-	ssd1306_UpdateScreen();
+//	ssd1306_Init();
+//	ssd1306_Fill(Black);
+//	ssd1306_SetCursor(20, 0);
+//	ssd1306_WriteString("01159231@pw.edu.pl", Font_6x8, White);
+//	ssd1306_SetCursor(22, 12);
+//	ssd1306_WriteString("MCP9808 sensor", Font_6x8, White);
+//	ssd1306_SetCursor(10, 24);
+//	ssd1306_WriteString("Temperature control", Font_6x8, White);
+//	ssd1306_SetCursor(10, 36);
+//	ssd1306_WriteString("(hysteresis vs. PI)", Font_6x8, White);
+//	ssd1306_UpdateScreen(); //TODO:
 
 	Mcp9808SetResolution(2);
 
@@ -211,10 +210,10 @@ int main(void)
 		if (HAL_GetTick() - oledSoftTimer > OLED_UPDATE_PERIOD)
 		{
 			oledSoftTimer = HAL_GetTick();
-			sprintf((char*) msgStr, "T_plant = %.1f deg. C\r\n", tempVal);
-			ssd1306_SetCursor(2, 52);
-			ssd1306_WriteString((char*) msgStr, Font_6x8, White);
-			ssd1306_UpdateScreen();
+//			sprintf((char*) msgStr, "T_plant = %.1f deg. C\r\n", tempVal);
+//			ssd1306_SetCursor(2, 52);
+//			ssd1306_WriteString((char*) msgStr, Font_6x8, White);
+//			ssd1306_UpdateScreen(); //TODO:
 		}
     /* USER CODE END WHILE */
 
@@ -289,20 +288,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Instance == TIM15) // 5 Hz
 	{
-		HAL_GPIO_TogglePin(LOGIC_ANALYZER_TIM15_GPIO_Port,
-		LOGIC_ANALYZER_TIM15_Pin);
+//		HAL_GPIO_TogglePin(LOGIC_ANALYZER_TIM15_GPIO_Port,
+//		LOGIC_ANALYZER_TIM15_Pin); //TODO:
 		ControlFeedbackLoop();
 	}
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-	if (GPIO_Pin == RED_BUTTON_Pin)
-	{
-		redButtonFlag = 1;
-		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-	}
-}
+//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+//{
+//	if (GPIO_Pin == RED_BUTTON_Pin)
+//	{
+//		redButtonFlag = 1;
+//		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+//	}
+//} //TODO:
 /* USER CODE END 4 */
 
 /**
