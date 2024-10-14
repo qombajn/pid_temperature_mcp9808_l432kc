@@ -114,11 +114,11 @@ void ControlFeedbackLoop(void)
 #endif // DONT_USE_DMA_INSIDE_INTERRUPT
 #endif // USE_SPRINTF_INSIDE_INTERRUPT
 
-	tempLower = tempRef - tempHysteresisWidth / 2; // for STM32CubeMonitor
-	tempUpper = tempRef + tempHysteresisWidth / 2; // for STM32CubeMonitor
+	tempLower = tempRef - tempHysteresisWidth / 2; // for STM32CubeMonitor //TODO: HYSTERESIS
+	tempUpper = tempRef + tempHysteresisWidth / 2; // for STM32CubeMonitor //TODO: HYSTERESIS
 
-	HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,
-			hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth));
+//	HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,
+//			hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth)); //TODO: HYSTERESIS
 
 //	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin,
 //			HAL_GPIO_ReadPin(HYSTERESIS_CONTROL_GPIO_Port,
