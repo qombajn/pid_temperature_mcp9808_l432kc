@@ -184,7 +184,7 @@ int main(void)
 //	ssd1306_WriteString("(hysteresis vs. PI)", Font_6x8, White);
 //	ssd1306_UpdateScreen(); //TODO:
 
-	Mcp9808SetResolution(2);
+	Mcp9808SetResolution(3);
 
 	HAL_TIM_Base_Start_IT(&htim15); // control loop interrupt
 
@@ -283,6 +283,10 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+static volatile float debug_period_ms;
+static volatile uint32_t last_wake;
+static volatile uint32_t now;
+static volatile uint32_t wake_counter = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -290,6 +294,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 //		HAL_GPIO_TogglePin(LOGIC_ANALYZER_TIM15_GPIO_Port,
 //		LOGIC_ANALYZER_TIM15_Pin); //TODO:
+		now = HAL_GetTick();
+		debug_period_ms = (float)(now - last_wake);
+		last_wake = now;
+		wake_counter++;
 		ControlFeedbackLoop();
 	}
 }
