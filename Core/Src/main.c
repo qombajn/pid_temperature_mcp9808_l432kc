@@ -31,28 +31,30 @@
 #include <string.h>
 #include "printf.h"  // https://embeddedartistry.com/blog/2019/11/06/an-embedded-friendly-printf-implementation/
 #include "mcp9808.h" // https://embeddedespresso.com/temperature-measurement-never-so-easy-with-stm32-and-mcp9808/
-#include "ssd1306.h" // https://github.com/afiskon/stm32-ssd1306
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+typedef enum
+{
+	Init = 0,
+	None  = 1,
+	Hysteresis = 2,
+	PI = 3,
+}_control_type;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
 #define UART_SEND_PERIOD 500
-#define OLED_UPDATE_PERIOD 250
 #define UART_BUS_POINTER (&huart2)
 #define PWM_MIN 0
 #define PWM_MAX 999
 #define KP_PI_GAIN 500 // guessing and checking :)
 #define KI_PI_GAIN 500
 #define SAMPLE_TIME 0.2 //s
-//#define USE_SPRINTF_INSIDE_INTERRUPT
-//#define DONT_USE_DMA_INSIDE_INTERRUPT
 
 /* USER CODE END PD */
 
@@ -67,18 +69,17 @@
 
 uint8_t msgStr[64]; /* String where to store the OLED line and/or the serial port output */
 
+static volatile _control_type last_control_type = None;
+static volatile _control_type control_type = Init;
 static volatile float tempVal; // The static volatile modifiers were an attempt to solve the visibility problem in SWV Data Trace Timeline Graph. Didn't work. Area 51.
 static volatile float tempLower;
 static volatile float tempUpper;
 static volatile float tempRef = 40.0;
 static volatile float tempHysteresisWidth = 5.0;
 
-volatile uint8_t redButtonFlag = 0;
-
 uint32_t pwmDuty;
 
 uint32_t uartSoftTimer;
-uint32_t oledSoftTimer;
 
 /* USER CODE END PV */
 
@@ -94,44 +95,64 @@ void ControlFeedbackLoop(void);
 
 void ControlFeedbackLoop(void)
 {
-	//HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
-	//LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_SET); //TODO:
-
 	tempVal = Mcp9808GetTemperature();
+	switch(control_type)
+	{
+		case Init: //Both Stop
+		{
+			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+			HAL_GPIO_DeInit(GPIOB, HYSTERESIS_CONTROL_Pin);
+			control_type = None;
+			break;
+		}
+		case None: //Both Stop
+		{
+			if(last_control_type != None)
+			{
+				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+			}
+			break;
+		}
+		case Hysteresis: //PWM Stop
+		{
+			if(last_control_type != Hysteresis)
+			{
+				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+				GPIO_InitTypeDef GPIO_InitStruct = {0};
+				GPIO_InitStruct.Pin = HYSTERESIS_CONTROL_Pin;
+				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+				GPIO_InitStruct.Pull = GPIO_NOPULL;
+				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+				HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+			}
 
-#ifdef USE_SPRINTF_INSIDE_INTERRUPT
-	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
-	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,
+					hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth));
+			break;
+		}
+		case PI: //Hysteresis stop
+		{
+			if(last_control_type != PI)
+			{
+				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+			}
 
-	sprintf((char*) msgStr, "Temperature is %.3f °C\r\n", tempVal);
-	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
-	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_SET);
+			pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
+						PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
+			HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, &pwmDuty, 1);
 
-#ifdef	DONT_USE_DMA_INSIDE_INTERRUPT
-	HAL_UART_Transmit(&huart2, msgStr, strlen((char*) msgStr), 200u);
-#else
-	HAL_UART_Transmit_DMA(&huart2, msgStr, strlen((char*) msgStr));
-#endif // DONT_USE_DMA_INSIDE_INTERRUPT
-#endif // USE_SPRINTF_INSIDE_INTERRUPT
 
-	tempLower = tempRef - tempHysteresisWidth / 2; // for STM32CubeMonitor //TODO: HYSTERESIS
-	tempUpper = tempRef + tempHysteresisWidth / 2; // for STM32CubeMonitor //TODO: HYSTERESIS
-
-//	HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,
-//			hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth)); //TODO: HYSTERESIS
-
-//	HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin,
-//			HAL_GPIO_ReadPin(HYSTERESIS_CONTROL_GPIO_Port,
-//			HYSTERESIS_CONTROL_Pin)); //TODO:
-
-	pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
-	PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
-	HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, &pwmDuty, 1);
-
-//	HAL_GPIO_WritePin(LOGIC_ANALYZER_CONTROL_GPIO_Port,
-//	LOGIC_ANALYZER_CONTROL_Pin, GPIO_PIN_RESET);
-
-//	HAL_GPIO_TogglePin(RED_LED_GPIO_Port, RED_LED_Pin);
+			break;
+		}
+		default:
+		{
+			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+			HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+			break;
+		}
+	}
+	last_control_type = control_type;
 }
 
 /* USER CODE END 0 */
@@ -172,48 +193,21 @@ int main(void)
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
-//	ssd1306_Init();
-//	ssd1306_Fill(Black);
-//	ssd1306_SetCursor(20, 0);
-//	ssd1306_WriteString("01159231@pw.edu.pl", Font_6x8, White);
-//	ssd1306_SetCursor(22, 12);
-//	ssd1306_WriteString("MCP9808 sensor", Font_6x8, White);
-//	ssd1306_SetCursor(10, 24);
-//	ssd1306_WriteString("Temperature control", Font_6x8, White);
-//	ssd1306_SetCursor(10, 36);
-//	ssd1306_WriteString("(hysteresis vs. PI)", Font_6x8, White);
-//	ssd1306_UpdateScreen(); //TODO:
-
 	Mcp9808SetResolution(2);
-
 	HAL_TIM_Base_Start_IT(&htim15); // control loop interrupt
-
 	uartSoftTimer = HAL_GetTick();
-	oledSoftTimer = HAL_GetTick();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-
-#ifndef USE_SPRINTF_INSIDE_INTERRUPT
 		if (HAL_GetTick() - uartSoftTimer > UART_SEND_PERIOD)
 		{
 			uartSoftTimer = HAL_GetTick();
 			sprintf((char*) msgStr, "MCP9808 reading: %.3f °C\r\n", tempVal);
 			HAL_UART_Transmit_DMA(UART_BUS_POINTER, msgStr,
 					strlen((char*) msgStr));
-		}
-#endif
-
-		if (HAL_GetTick() - oledSoftTimer > OLED_UPDATE_PERIOD)
-		{
-			oledSoftTimer = HAL_GetTick();
-//			sprintf((char*) msgStr, "T_plant = %.1f deg. C\r\n", tempVal);
-//			ssd1306_SetCursor(2, 52);
-//			ssd1306_WriteString((char*) msgStr, Font_6x8, White);
-//			ssd1306_UpdateScreen(); //TODO:
 		}
     /* USER CODE END WHILE */
 
@@ -283,33 +277,15 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-static volatile float debug_period_ms;
-static volatile uint32_t last_wake;
-static volatile uint32_t now;
-static volatile uint32_t wake_counter = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Instance == TIM15) // 5 Hz
 	{
-//		HAL_GPIO_TogglePin(LOGIC_ANALYZER_TIM15_GPIO_Port,
-//		LOGIC_ANALYZER_TIM15_Pin); //TODO:
-		now = HAL_GetTick();
-		debug_period_ms = (float)(now - last_wake);
-		last_wake = now;
-		wake_counter++;
 		ControlFeedbackLoop();
 	}
 }
 
-//void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-//{
-//	if (GPIO_Pin == RED_BUTTON_Pin)
-//	{
-//		redButtonFlag = 1;
-//		HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
-//	}
-//} //TODO:
 /* USER CODE END 4 */
 
 /**
