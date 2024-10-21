@@ -76,6 +76,8 @@ static volatile float tempLower;
 static volatile float tempUpper;
 static volatile float tempRef = 40.0;
 static volatile float tempHysteresisWidth = 5.0;
+static volatile uint32_t timestamp_OFF = 0;
+static volatile uint32_t falling_time = 500;
 
 uint32_t pwmDuty;
 
@@ -93,6 +95,29 @@ void ControlFeedbackLoop(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void turnOFF_PWM(void)
+{
+	HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
+
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitStruct.Pin = GPIO_PIN_8;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+}
+
+void turnOFF_Hist(void)
+{
+	HAL_GPIO_DeInit(GPIOB, HYSTERESIS_CONTROL_Pin);
+
+	GPIO_InitTypeDef GPIO_InitStruct = {0};
+	GPIO_InitStruct.Pin = HYSTERESIS_CONTROL_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
+
 void ControlFeedbackLoop(void)
 {
 	tempVal = Mcp9808GetTemperature();
@@ -100,12 +125,8 @@ void ControlFeedbackLoop(void)
 	{
 		case Init: //Both Stop
 		{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
-			HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
-
-			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
-			HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
-			HAL_GPIO_DeInit(GPIOB, HYSTERESIS_CONTROL_Pin);
+			turnOFF_PWM();
+			turnOFF_Hist();
 			control_type = None;
 			break;
 		}
@@ -113,12 +134,8 @@ void ControlFeedbackLoop(void)
 		{
 			if(last_control_type != None)
 			{
-				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
-				HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
-
-				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
-				HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
-				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+				turnOFF_PWM();
+				turnOFF_Hist();
 			}
 			break;
 		}
@@ -126,11 +143,7 @@ void ControlFeedbackLoop(void)
 		{
 			if(last_control_type != Hysteresis)
 			{
-				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
-				HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
-
-				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
-				HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
+				turnOFF_PWM();
 
 				GPIO_InitTypeDef GPIO_InitStruct = {0};
 				GPIO_InitStruct.Pin = HYSTERESIS_CONTROL_Pin;
@@ -141,17 +154,15 @@ void ControlFeedbackLoop(void)
 			}
 
 			HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,
-					hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth));
+						hysteresisCtrl(tempRef - tempVal, tempHysteresisWidth));
+
 			break;
 		}
 		case PI: //Hysteresis stop
 		{
 			if(last_control_type != PI)
 			{
-				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
-				HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
-
-				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+				turnOFF_Hist();
 
 				GPIO_InitTypeDef GPIO_InitStruct = {0};
 			    GPIO_InitStruct.Pin = GPIO_PIN_8;
@@ -163,7 +174,7 @@ void ControlFeedbackLoop(void)
 			}
 
 			pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
-						PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
+							PWM_MIN, PWM_MAX); // both controllers are active - you can switch between them on the breadboard
 			HAL_TIM_PWM_Start_DMA(&htim1, TIM_CHANNEL_1, &pwmDuty, 1);
 
 
@@ -171,12 +182,8 @@ void ControlFeedbackLoop(void)
 		}
 		default:
 		{
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
-			HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
-
-			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
-			HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
-			HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+			turnOFF_PWM();
+			turnOFF_Hist();
 			break;
 		}
 	}
