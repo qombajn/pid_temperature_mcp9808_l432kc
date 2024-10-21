@@ -107,11 +107,8 @@ void ControlFeedbackLoop(void)
 		}
 		case None: //Both Stop
 		{
-			if(last_control_type != None)
-			{
-				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
-				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
-			}
+			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+			HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
 			break;
 		}
 		case Hysteresis: //PWM Stop
