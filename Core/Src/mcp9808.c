@@ -47,7 +47,7 @@ float Mcp9808GetTemperature(void)
 	_tempVal = ((_dataRegLong & 0x0FFF) >> 4);
 
 	/* Extract decimal part */
-	_tempValDec = 0.125;
+	_tempValDec = 0.0625;
 	for (int i = 0; i < 4; i++)
 	{
 		_tempVal += ((_dataRegLong >> i) & 0x0001) * _tempValDec;

@@ -228,7 +228,7 @@ int main(void)
   MX_TIM15_Init();
   /* USER CODE BEGIN 2 */
 
-	Mcp9808SetResolution(2);
+	Mcp9808SetResolution(3);
 	HAL_TIM_Base_Start_IT(&htim15); // control loop interrupt
 	uartSoftTimer = HAL_GetTick();
   /* USER CODE END 2 */
