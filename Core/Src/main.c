@@ -100,22 +100,38 @@ void ControlFeedbackLoop(void)
 	{
 		case Init: //Both Stop
 		{
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
+			HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
+
 			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+			HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
 			HAL_GPIO_DeInit(GPIOB, HYSTERESIS_CONTROL_Pin);
 			control_type = None;
 			break;
 		}
 		case None: //Both Stop
 		{
-			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
-			HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+			if(last_control_type != None)
+			{
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
+				HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
+
+				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+				HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
+				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+			}
 			break;
 		}
 		case Hysteresis: //PWM Stop
 		{
 			if(last_control_type != Hysteresis)
 			{
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
+				HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
+
 				HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+				HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
+
 				GPIO_InitTypeDef GPIO_InitStruct = {0};
 				GPIO_InitStruct.Pin = HYSTERESIS_CONTROL_Pin;
 				GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -132,7 +148,18 @@ void ControlFeedbackLoop(void)
 		{
 			if(last_control_type != PI)
 			{
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
+				HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
+
 				HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
+
+				GPIO_InitTypeDef GPIO_InitStruct = {0};
+			    GPIO_InitStruct.Pin = GPIO_PIN_8;
+			    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+			    GPIO_InitStruct.Pull = GPIO_NOPULL;
+			    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+			    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+			    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 			}
 
 			pwmDuty = piCtrl(tempRef - tempVal, SAMPLE_TIME, KP_PI_GAIN, KI_PI_GAIN,
@@ -144,7 +171,11 @@ void ControlFeedbackLoop(void)
 		}
 		default:
 		{
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8,0);
+			HAL_GPIO_WritePin(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin,0);
+
 			HAL_TIM_PWM_Stop_DMA(&htim1, TIM_CHANNEL_1);
+			HAL_GPIO_DeInit(GPIOA, GPIO_PIN_8);
 			HAL_GPIO_DeInit(HYSTERESIS_CONTROL_GPIO_Port, HYSTERESIS_CONTROL_Pin);
 			break;
 		}
